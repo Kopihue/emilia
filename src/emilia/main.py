@@ -1,8 +1,9 @@
 from emilia.emilia_chat import EmiliaChat
+from emilia.emilia_talk import EmiliaTalk
 import sys
 
 def main() -> int:
-    emilia = EmiliaChat("qwen3").start()
+    EmiliaChat("qwen3").start()
 
     return 0
 
