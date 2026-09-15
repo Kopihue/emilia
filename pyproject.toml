@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "emilia"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
     "ollama",
     "ddgs",
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-eemilia = "emilia.main:main"
+emilia = "emilia.main:main"
 
 [tool.kuvy.run-paths]
 main = "src/emilia/main.py"
