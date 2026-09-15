@@ -1,0 +1,22 @@
+[build-system]
+requires = [
+    "hatchling",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "emilia"
+version = "0.1.0"
+dependencies = [
+    "ollama",
+    "ddgs",
+    "kopilogs",
+    "trafilatura",
+]
+
+[project.scripts]
+eemilia = "emilia.main:main"
+
+[tool.kuvy.run-paths]
+main = "src/emilia/main.py"
+tests = "tests/tests.py"
