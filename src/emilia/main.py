@@ -6,9 +6,8 @@ def main() -> int:
     args = sys.argv[1:]
 
     if not args:
-        print("You have two options for Emilia!")
-        print("\n[+] emilia chat")
-        print("[+] emilia talk\n")
+        print("You have these options for Emilia!")
+        print("[+] emilia chat\n")
         return 1
 
     model = "tripolskypetr/qwen3.5-uncensored-aggressive:latest"
@@ -16,9 +15,11 @@ def main() -> int:
     match args[0]:
         case "talk":
             try:
-                print("Unavailable temporarily.")
-            except KeyboardInterrupt:
-                pass
+                talk = EmiliaTalk(model)
+                talk.start()
+            except Exception as e:
+                print(e)
+                return 1
 
         case "chat":
             EmiliaChat(model).start()

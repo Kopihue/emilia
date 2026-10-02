@@ -53,7 +53,6 @@ class EmiliaTalk(Emilia):
 
                 for rendered in self.kokoro.get_sentence(choice):
                     self.audio.play_direct(rendered, 24_000)
-
                 result = self._get_twenty_seconds()
                 print()
                 paint(">>> ", end="").bold().magenta().show()

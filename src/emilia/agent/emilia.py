@@ -41,6 +41,7 @@ class Emilia:
 
         while True:
             response = self.generate_content()
+            print(response["thinking"])
             self.append_context_assistant(response["message"])
 
             if response["tool_calls"] is None:

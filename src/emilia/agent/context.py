@@ -26,6 +26,14 @@ Here you have two tools that you will use together:
 
 The first step is to get URLs from the internet.
 
+You will use search queries, be aware to not write too specific
+search queries, as the search engine will not be able to encounter
+a result.
+
+Search queries should be concise and focused.
+Avoid writing full questions or long descriptions.
+Use only the key terms needed to find relevant results.
+
 Use "get_urls_from_search_queries" for this task.
 You will receive many URLs. Your task is to choose the best ones,
 with the most relevant and useful information.
