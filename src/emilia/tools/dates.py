@@ -1,3 +1,5 @@
+from kopitools import log
+
 import datetime
 
 class Dates:
@@ -14,6 +16,6 @@ class Dates:
         Returns:
             str -> Formatted string containing the exact datetime
         """
-
+        log("Getting datetime!").success()
         return datetime.datetime.now().strftime(r"%a | %Y/%m/%d -- %H:%M:%S")
 

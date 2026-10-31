@@ -1,73 +1,128 @@
-from pathlib import Path
 import pyaudio
-import numpy as np
+
+from pathlib import Path
+from typing import Callable
 import wave
+import time
 
-class Audio(pyaudio.PyAudio):
+class Audio:
     def __init__(self):
-        super().__init__()
+        self.client = pyaudio.PyAudio()
 
-        # for recording:
-        self.FORMAT = pyaudio.paInt16
-        self.CHANNELS = 2
-        self.RATE = 44100
-        self.CHUNK = 1024 # works in _play too
-
-        # continuous for avoiding bugs
-        self.continuous_stream = self.open(
-            format=self.FORMAT,
-            channels=self.CHANNELS,
-            rate=self.RATE,
+        # continuous for input
+        self.continuous_stream = self.client.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=44100,
             input=True,
         )
 
-    def record(self, seconds: int) -> list:
-        stream = self.open(
-            format=self.FORMAT,
-            channels=self.CHANNELS,
-            rate=self.RATE,
-            input=True,
-        )
-
+    def record(self, seconds: float) -> list:
         frames = []
+        rate = 44100
+        chunk = 1024
 
-        for _ in range(0, int(self.RATE / self.CHUNK * seconds)):
-            frames.append(stream.read(self.CHUNK))
+        for _ in range(0, int(rate / chunk * seconds)):
+            frames.append(self.continuous_stream.read(chunk))
 
         return frames
 
-    def play(self, file: Path):
-        with wave.open(str(file), "rb") as wf:
-            stream = self.open(
-                format=self.get_format_from_width(wf.getsampwidth()),
-                channels=wf.getnchannels(),
-                rate=wf.getframerate(),
-                output=True, 
-            )
+    def play_numpy_array(self, audio: np.ndarray, samplerate: int):
+        chunk = 1024
 
-            while len(data := wf.readframes(self.CHUNK)):
-                stream.write(data)
-
-            stream.stop_stream()
-            stream.close()
-
-    def play_direct(self, audio: np.ndarray, samplerate: int):
         try:
-            stream = self.open(
+            stream = self.client.open(
                 format=pyaudio.paFloat32,
                 channels=1,
                 rate=samplerate,
                 output=True,
-                frames_per_buffer=self.CHUNK,
+                frames_per_buffer=chunk,
             )
 
             stream.write(audio.astype(np.float32).tobytes())
-        finally:
-            pass
-            #stream.stop_stream()
-            #stream.close()
 
-    def close_audio(self):
+        finally:
+            stream.stop_stream()
+            stream.close()
+
+    def close(self):
         self.continuous_stream.stop_stream()
         self.continuous_stream.close()
-        self.terminate()
+        self.client.terminate()
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AudioFile:
+    CHUNK = 1024
+
+    def __init__(self, client: pyaudio.PyAudio, file: Path, callback: Callable):
+        self.client = client
+        self.file = file
+        self.callback = callback
+        self.wf = wave.open(str(self.file), "rb")
+        self.stream: pyaudio.Stream = self.client.open(
+            format=self.client.get_format_from_width(self.wf.getsampwidth()),
+            channels=self.wf.getnchannels(),
+            rate=self.wf.getframerate(),
+            output=True,
+        )
+
+        self.playing = False
+        self.running = False
+
+        self.thread = Thread(target=self._play)
+
+    def pause(self):
+        self.playing = False
+
+    def resume(self):
+        self.playing = True
+
+    def close(self):
+        self.playing = False
+        self.running = False
+        self.thread.join()
+
+    def wait(self, timeout: None | int = None):
+        self.thread.join(timeout=timeout)
+
+        if self.thread.is_alive():
+            self.close()
+
+    def play(self):
+        self.running = True
+        self.playing = True
+        self.thread.start()
+
+    def _play(self):
+        while self.running:
+            if not self.playing:
+                time.sleep(0.1)
+                continue
+
+            frames = self.wf.readframes(AudioFile.CHUNK)
+
+            if not frames:
+                self.running = False
+                self.playing = False
+                break
+
+            self.stream.write(frames)
+
+        self._clean()
+        self.callback(self)
+
+    def _clean(self):
+        self.wf.close()
+        self.stream.stop_stream()
+        self.stream.close()

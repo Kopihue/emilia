@@ -1,5 +1,8 @@
 from ddgs import DDGS
+from ddgs.exceptions import DDGSException
 from trafilatura import fetch_url, extract
+
+from kopitools import log
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -18,7 +21,18 @@ class Internet:
 
         self.engine = DDGS()
 
-    def get_urls(self, queries: list[str]) -> str:
+    def get_urls_from_search_queries(self, queries: list[str]) -> str:
+        """
+        This tool scraps a lot of URLs from search queries.
+
+        Args:
+            queries: A list containing the search queries
+
+        Returns:
+            Formatted string containing the website's title and URL
+        """
+        log("Getting URLs from!: ").success()
+
         def search(query: str) -> list[dict[str, Any]]:
             return self.engine.text(
                 query,
@@ -31,14 +45,14 @@ class Internet:
             futures = []
 
             for query in queries:
+                log(f"\tQuery: {query}").success()
                 futures.append(exec.submit(search, query))
 
         counter = 1
         for future in futures:
             try:
                 result = future.result()
-            except Exception as e:
-                print(e)
+            except DDGSException:
                 continue
 
             for r in result:
@@ -48,19 +62,32 @@ class Internet:
 
         return results.strip()
 
-    def get_content(self, urls: list[str]) -> str:
+    def get_content_from_urls(self, urls: list[str]) -> str:
+        """
+        This tool scraps the most relevant information from a URL
+
+        Args:
+            queries: A list containing the URLs to scrap
+
+        Returns:
+            Formatted string containing the page's content
+        """
+        log("Getting content!:").success()
         urls = urls[:3]
 
         def fetch(url: str) -> str | None:
-            return extract(
-                fetch_url(url),
-                include_comments=True,
-                include_images=False,
-                include_tables=False,
-                include_links=False,
-                fast=True,
-                deduplicate=True,
-            )
+            fetched = fetch_url(url)
+
+            if fetched is not None:
+                return extract(
+                    fetched,
+                    include_comments=True,
+                    include_images=False,
+                    include_tables=False,
+                    include_links=False,
+                    fast=True,
+                    deduplicate=True,
+                )
 
         results = ""
 
@@ -68,6 +95,7 @@ class Internet:
             futures = []
 
             for url in urls:
+                log(f"\tURL: {url}").success()
                 futures.append(exec.submit(fetch, url))
 
         for future in futures:

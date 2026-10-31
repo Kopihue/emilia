@@ -24,5 +24,9 @@ class TempFile:
             wf.setsampwidth(sampwidth)
             wf.writeframes(b"".join(frames))
 
+    def clear(self):
+        with open(self.path, "wb"):
+            pass
+
     def delete(self):
         self.path.unlink()

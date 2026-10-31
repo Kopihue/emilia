@@ -8,7 +8,7 @@ class Kokoro:
         self.pipeline = KPipeline(lang_code='a')
 
     def get_sentence(self, text: str) -> Iterator[np.ndarray]:
-        generator = self.pipeline(text, voice='af_heart', speed=1.1)
+        generator = self.pipeline(text, voice='af_heart', speed=1.3)
 
         for _, _, audio in generator:
             yield audio.numpy()

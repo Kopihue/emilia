@@ -3,7 +3,7 @@ import whisper
 
 class Whisper:
     def __init__(self):
-        self.model = whisper.load_model("base.en")
+        self.model = whisper.load_model("small.en")
 
     def transcribe(self, file: Path) -> str:
         return self.model.transcribe(str(file))["text"]

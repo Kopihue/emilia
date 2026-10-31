@@ -1,39 +1,86 @@
-from emilia.agent import context
-from emilia.tools import (
-    get_urls_from_search_queries,
-    get_content_from_urls,
-    get_current_datetime,
-)
+from emilia.tools.internet     import Internet
+from emilia.tools.dates        import Dates
+from emilia.tools.applications import Applications
+from emilia.tools.music        import Music
+from emilia.lib.audio          import Audio
+from emilia.agent.context      import Context
 
-from ollama import (
-    chat,
-    Message,
-    ChatResponse,
-)
+from ollama import chat, Message, ChatResponse
+from kopitools import paint, log, Log
+Log.text = True
+
 from typing import Sequence, Any
-from kopilogs.paint import paint
-
+import subprocess
 import re
 
 class Emilia:
-    def __init__(self, model: str):
+    def __init__(
+        self,
+        model: str,
+        context: Context,
+        num_ctx: int,
+    ):
         self.model = model
+        self.num_ctx = num_ctx
+        self.audio = Audio() # for music tools
         self.context = []
-        self.tools = {
-            "get_urls_from_search_queries": get_urls_from_search_queries,
-            "get_content_from_urls": get_content_from_urls,
-            "get_current_datetime": get_current_datetime,
-        }
 
-        self.append_context_system(context)
+        self.tools = {}
+        try:
+            self.internet_tool = Internet()
+        except RuntimeError:
+            pass
+        else:
+            self.tools.update({
+                "get_urls_from_search_queries": self.internet_tool.get_urls_from_search_queries,
+                "get_content_from_urls": self.internet_tool.get_content_from_urls,
+            }) 
+            context.add_context_tool(Context.TOOL_INTERNET)
+
+        try:
+            self.dates_tool = Dates()
+        except Exception:
+            pass
+        else:
+            self.tools.update({
+                "get_current_datetime": self.dates_tool.get_current_datetime,
+            })
+            context.add_context_tool(Context.TOOL_DATETIMES)
+
+        try:
+            self.music_tool = Music(self.audio.client)
+        except FileNotFoundError as e:
+            print(e)
+        else:
+            self.tools.update({
+                "play_song":self.music_tool.play_song,
+                "play_song_on_repeat": self.music_tool.play_song_on_repeat,
+                "pause_song": self.music_tool.pause_song,
+                "resume_song": self.music_tool.resume_song,
+                "close_song": self.music_tool.close_song,
+                "get_songs": self.music_tool.get_songs,
+                "close_all_songs": self.music_tool.close_all_songs,
+            })
+            context.add_context_tool(Context.TOOL_MUSIC)
+
+        self.append_context_system(str(context))
+        subprocess.run("clear")
+
+        log(
+            "Using model:",
+            f"[{paint(self.model).bold().magenta()}]",
+        ).info()
+        log(
+            "Using num_ctx:",
+            f"[{paint(self.num_ctx).bold().magenta()}]",
+        ).info()
+        log(
+            "Capping num_ctx at:",
+            f"[{paint(int(self.num_ctx * 0.90)).bold().magenta()}]",
+        ).info()
+        paint("=" * 80).bold().green().show()
 
     def execute_tool_call(self, call: Message.ToolCall) -> str:
-        paint(
-            paint("Executing tool:"),
-            paint(call.function.name).bold().green(),
-            paint("|"),
-            paint(call.function.arguments).bold().magenta(),
-        ).show()
         return self.tools[call.function.name](**call.function.arguments)
 
     def generate_content_full(self, user_message: str) -> str | None:
@@ -41,11 +88,10 @@ class Emilia:
 
         while True:
             response = self.generate_content()
-            print(response["thinking"])
             self.append_context_assistant(response["message"])
 
             if response["tool_calls"] is None:
-                break;
+                break
 
             for tc in response["tool_calls"]:
                 call_content = self.execute_tool_call(tc)
@@ -63,13 +109,13 @@ class Emilia:
                 messages=self.context,
                 tools=list(self.tools.values()),
                 options={
-                    "num_ctx": 32_768,
+                    "num_ctx": self.num_ctx,
                     "num_predict": -1 ,
                 },
             )
 
             if response.prompt_eval_count is not None:
-                if response.prompt_eval_count > 28_000:
+                if response.prompt_eval_count > int(self.num_ctx * 0.90):
                     paint("Cleaning context...").bold().blue().show()
                     self.context = self.context[0] + self.context[-2:]
                     continue
@@ -105,3 +151,8 @@ class Emilia:
             "tool_name": name,
             "content": content,
         })
+
+    def exit(self):
+        paint("Exiting...").bold().red().show()
+        self.music_tool.close_all_songs()
+        self.audio.close()

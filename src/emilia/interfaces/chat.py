@@ -1,21 +1,22 @@
-from emilia import Emilia
+from emilia.agent.context import Context
+from emilia.agent.emilia  import Emilia
 
-from kopilogs.paint import paint
+from kopitools import paint
 import re
 
 class EmiliaChat(Emilia):
-    def __init__(self, model: str):
-        super().__init__(model)
+    def __init__(self, model: str, context: Context, num_ctx: int):
+        super().__init__(model, context, num_ctx)
 
     def start(self):
         while True:
             lines = []
 
             while True:
-                line = input(paint(">>> ").bold().magenta())
+                line = input(paint(">>> ").bold().blue())
 
                 if line == "/bye":
-                    paint("Exiting...").bold().red().show()
+                    self.exit()
                     return
 
                 if not line:
@@ -27,6 +28,6 @@ class EmiliaChat(Emilia):
 
             if content is not None:
                 print()
-                paint(">>> ", end="").bold().green().show()
+                paint(">>> ", end="").bold().magenta().show()
                 print(content)
                 print()

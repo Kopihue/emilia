@@ -6,22 +6,26 @@ build-backend = "hatchling.build"
 
 [project]
 name = "emilia"
-version = "5.0.1"
+version = "5.0.6"
 dependencies = [
     "ollama",
     "ddgs",
-    "kopilogs",
     "trafilatura",
     "pyaudio",
-    "openai-whisper",
-    "kokoro",
+    "kopitools",
     "numpy",
 ]
 requires-python = ">=3.12,<3.14"
 
+[project.optional-dependencies]
+voice = [
+    "openai-whisper",
+    "kokoro",
+]
+
 [project.scripts]
 emilia = "emilia.main:main"
 
-[tool.kuvy.run-paths]
+[tool.kuvy.run]
 main = "src/emilia/main.py"
 tests = "tests/tests.py"
